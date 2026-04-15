@@ -1,0 +1,85 @@
+{
+	"name": "pipeline1",
+	"properties": {
+		"activities": [
+			{
+				"name": "length",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "len",
+					"value": 10
+				}
+			},
+			{
+				"name": "breadth",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "bread",
+					"value": {
+						"value": "@variables('len')",
+						"type": "Expression"
+					}
+				}
+			},
+			{
+				"name": "area",
+				"type": "SetVariable",
+				"dependsOn": [
+					{
+						"activity": "length",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					},
+					{
+						"activity": "breadth",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "area",
+					"value": {
+						"value": "@mul(variables('len'),variables('bread'))",
+						"type": "Expression"
+					}
+				}
+			}
+		],
+		"variables": {
+			"len": {
+				"type": "Integer",
+				"defaultValue": 5
+			},
+			"bread": {
+				"type": "Integer",
+				"defaultValue": 5
+			},
+			"area": {
+				"type": "Integer"
+			}
+		},
+		"folder": {
+			"name": "ksr_project1"
+		},
+		"annotations": []
+	}
+}
