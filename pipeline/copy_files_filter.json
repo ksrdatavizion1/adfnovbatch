@@ -5,7 +5,14 @@
 			{
 				"name": "get_info",
 				"type": "GetMetadata",
-				"dependsOn": [],
+				"dependsOn": [
+					{
+						"activity": "date",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
 				"policy": {
 					"timeout": "0.12:00:00",
 					"retry": 0,
@@ -98,7 +105,10 @@
 									"referenceName": "ds_adls_binary",
 									"type": "DatasetReference",
 									"parameters": {
-										"file_path": "csv"
+										"folder_path": {
+											"value": "@concat('csv/',variables('date'))",
+											"type": "Expression"
+										}
 									}
 								}
 							]
@@ -196,7 +206,10 @@
 									"referenceName": "ds_adls_binary",
 									"type": "DatasetReference",
 									"parameters": {
-										"file_path": "json"
+										"folder_path": {
+											"value": "@concat('json/', variables('date'))",
+											"type": "Expression"
+										}
 									}
 								}
 							]
@@ -226,8 +239,30 @@
 						"type": "Expression"
 					}
 				}
+			},
+			{
+				"name": "date",
+				"type": "SetVariable",
+				"dependsOn": [],
+				"policy": {
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"variableName": "date",
+					"value": {
+						"value": "@formatDateTime(utcNow(), 'yyyyMMdd')",
+						"type": "Expression"
+					}
+				}
 			}
 		],
+		"variables": {
+			"date": {
+				"type": "String"
+			}
+		},
 		"folder": {
 			"name": "ksr_project1"
 		},
