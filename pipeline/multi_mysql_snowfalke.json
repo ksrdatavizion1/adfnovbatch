@@ -63,7 +63,7 @@
 								"source": {
 									"type": "MySqlSource",
 									"query": {
-										"value": "@concat('Select * from' , item().TABLE_NAME)",
+										"value": "@concat('Select * from ' , item().TABLE_NAME)",
 										"type": "Expression"
 									}
 								},
