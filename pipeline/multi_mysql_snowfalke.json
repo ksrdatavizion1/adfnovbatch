@@ -70,7 +70,7 @@
 								"sink": {
 									"type": "SnowflakeV2Sink",
 									"preCopyScript": {
-										"value": "@concat('Truncate table PUBLIC.',item().TABLE_NAME)",
+										"value": "@concat('Truncate table PUBLIC.',toUpper(item().TABLE_NAME))",
 										"type": "Expression"
 									},
 									"importSettings": {
@@ -106,7 +106,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"table_name": {
-											"value": "@item().TABLE_NAME",
+											"value": "@toUpper(item().TABLE_NAME)",
 											"type": "Expression"
 										}
 									}
