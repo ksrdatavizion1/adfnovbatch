@@ -16,15 +16,22 @@
 				"userProperties": [],
 				"typeProperties": {
 					"source": {
-						"type": "MySqlSource",
+						"type": "SnowflakeV2Source",
 						"query": {
-							"value": "SELECT table_name \nFROM information_schema.tables \nWHERE table_schema = 'sales';\n",
+							"value": "SELECT * FROM PUBLIC.TABLE_MAPPING",
 							"type": "Expression"
-						}
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						},
+						"treatDecimalAsString": false
 					},
 					"dataset": {
-						"referenceName": "ds_mysql",
-						"type": "DatasetReference"
+						"referenceName": "ds_snowflake",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "afasfas"
+						}
 					},
 					"firstRowOnly": false
 				}
@@ -63,14 +70,14 @@
 								"source": {
 									"type": "MySqlSource",
 									"query": {
-										"value": "@concat('Select * from ' , item().TABLE_NAME)",
+										"value": "@concat('Select * from ' , item().SOURCE_TABLE)",
 										"type": "Expression"
 									}
 								},
 								"sink": {
 									"type": "SnowflakeV2Sink",
 									"preCopyScript": {
-										"value": "@concat('Truncate table PUBLIC.',toUpper(item().TABLE_NAME))",
+										"value": "@concat('Truncate table PUBLIC.',toUpper(item().TARGET_TABLE))",
 										"type": "Expression"
 									},
 									"importSettings": {
@@ -106,7 +113,7 @@
 									"type": "DatasetReference",
 									"parameters": {
 										"table_name": {
-											"value": "@toUpper(item().TABLE_NAME)",
+											"value": "@toUpper(item().TARGET_TABLE)",
 											"type": "Expression"
 										}
 									}
