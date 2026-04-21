@@ -24,6 +24,10 @@
 					},
 					"sink": {
 						"type": "SnowflakeV2Sink",
+						"preCopyScript": {
+							"value": "Truncate table PUBLIC.SALES_ORDERS",
+							"type": "Expression"
+						},
 						"importSettings": {
 							"type": "SnowflakeImportCopyCommand"
 						}
