@@ -9,8 +9,8 @@
 		"type": "SnowflakeV2Table",
 		"schema": [],
 		"typeProperties": {
-			"schema": "sales_orders",
-			"table": ""
+			"schema": "PUBLIC",
+			"table": "SALES_ORDER"
 		}
 	}
 }
