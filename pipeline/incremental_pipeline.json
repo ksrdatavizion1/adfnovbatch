@@ -119,7 +119,7 @@
 					"source": {
 						"type": "MySqlSource",
 						"query": {
-							"value": "SELECT *\nFROM @{pipeline().parameters.p_table_name}\nWHERE last_modified > '@{variables('v_last_watermark')}'",
+							"value": "SELECT * FROM @{pipeline().parameters.p_table_name} WHERE  last_modified > '@{variables('v_last_watermark')}'",
 							"type": "Expression"
 						}
 					},
@@ -158,7 +158,7 @@
 						"type": "DatasetReference",
 						"parameters": {
 							"table_name": {
-								"value": "@pipeline().parameters.p_table_name",
+								"value": "@concat(pipeline().parameters.p_table_name, '_SNOWFLAKE')",
 								"type": "Expression"
 							}
 						}
