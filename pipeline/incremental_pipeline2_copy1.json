@@ -1,0 +1,350 @@
+{
+	"name": "incremental_pipeline2_copy1",
+	"properties": {
+		"activities": [
+			{
+				"name": "Lookup",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SnowflakeV2Source",
+						"query": {
+							"value": "Select * from table_metadata",
+							"type": "Expression"
+						},
+						"exportSettings": {
+							"type": "SnowflakeExportCopyCommand"
+						},
+						"treatDecimalAsString": false
+					},
+					"dataset": {
+						"referenceName": "ds_snowflake",
+						"type": "DatasetReference",
+						"parameters": {
+							"table_name": "sda"
+						}
+					},
+					"firstRowOnly": false
+				}
+			},
+			{
+				"name": "ForEach1",
+				"type": "ForEach",
+				"dependsOn": [
+					{
+						"activity": "Lookup",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"items": {
+						"value": "@activity('Lookup').output.value",
+						"type": "Expression"
+					},
+					"isSequential": false,
+					"activities": [
+						{
+							"name": "Script1",
+							"type": "Script",
+							"dependsOn": [],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ls_snowflake",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "INSERT INTO watermark_control (table_name, last_loaded_timestamp)\nselect '@{item().table_name}', '1900-01-01 00:00:00' WHERE NOT EXISTS (\n    SELECT 1 FROM watermark_control\n    WHERE table_name = '@{item().table_name}'\n);\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						},
+						{
+							"name": "Lookup1",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Script1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "SnowflakeV2Source",
+									"query": {
+										"value": "SELECT last_loaded_timestamp\nFROM watermark_control\nWHERE table_name = '@{item().table_name}';",
+										"type": "Expression"
+									},
+									"exportSettings": {
+										"type": "SnowflakeExportCopyCommand"
+									},
+									"treatDecimalAsString": false
+								},
+								"dataset": {
+									"referenceName": "ds_snowflake",
+									"type": "DatasetReference",
+									"parameters": {
+										"table_name": "3erw"
+									}
+								}
+							}
+						},
+						{
+							"name": "Set variable1",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lookup1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "v_last_watermark",
+								"value": {
+									"value": "@activity('Lookup1').output.firstRow.LAST_LOADED_TIMESTAMP",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Copy data1",
+							"type": "Copy",
+							"dependsOn": [
+								{
+									"activity": "Set variable1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "MySqlSource",
+									"query": {
+										"value": "SELECT * FROM @{item().table_name} WHERE  last_modified > '@{variables('v_last_watermark')}'",
+										"type": "Expression"
+									}
+								},
+								"sink": {
+									"type": "SnowflakeV2Sink",
+									"preCopyScript": {
+										"value": "@concat('TRUNCATE TABLE PULIC.',toUpper(item().table_name), '_STAGE')",
+										"type": "Expression"
+									},
+									"importSettings": {
+										"type": "SnowflakeImportCopyCommand"
+									}
+								},
+								"enableStaging": true,
+								"stagingSettings": {
+									"linkedServiceName": {
+										"referenceName": "ls_blob2",
+										"type": "LinkedServiceReference"
+									},
+									"path": "blobinput"
+								},
+								"translator": {
+									"type": "TabularTranslator",
+									"typeConversion": true,
+									"typeConversionSettings": {
+										"allowDataTruncation": true,
+										"treatBooleanAsNumber": false
+									}
+								}
+							},
+							"inputs": [
+								{
+									"referenceName": "ds_mysql",
+									"type": "DatasetReference"
+								}
+							],
+							"outputs": [
+								{
+									"referenceName": "ds_snowflake",
+									"type": "DatasetReference",
+									"parameters": {
+										"table_name": {
+											"value": "@concat(toUpper(item().table_name), '_STAGE')",
+											"type": "Expression"
+										}
+									}
+								}
+							]
+						},
+						{
+							"name": "Script2",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Copy data1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ls_snowflake",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "UPDATE watermark_control\nSET last_loaded_timestamp = (\n    SELECT MAX(last_modified)\n    FROM IDENTIFIER('@{item().table_name}_snowflake')\n)\nWHERE table_name = '@{item().table_name}';",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						},
+						{
+							"name": "scd1",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "Script2",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ls_snowflake",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "\nDECLARE \n    src_table STRING DEFAULT '@{item().table_name}_stage';\n    tgt_table STRING DEFAULT '@{item().table_name}_snowflake';\n    pk STRING DEFAULT '@{item().primary_key}';\n    col_list STRING;\n    upd_list STRING;\n    merge_sql STRING;\nBEGIN\n    SELECT LISTAGG(column_name, ', ') \n    INTO :col_list\n    FROM INFORMATION_SCHEMA.COLUMNS\n    WHERE table_name = UPPER(:tgt_table);\n\n    SELECT LISTAGG('t.' || column_name || ' = s.' || column_name, ', ')\n    INTO :upd_list\n    FROM INFORMATION_SCHEMA.COLUMNS\n    WHERE table_name = UPPER(:tgt_table)\n    AND column_name <> UPPER(:pk);\n\n    merge_sql := '\n        MERGE INTO ' || tgt_table || ' t\n        USING ' || src_table || ' s\n        ON t.' || pk || ' = s.' || pk || '\n        WHEN MATCHED THEN UPDATE SET ' || upd_list || '\n        WHEN NOT MATCHED THEN INSERT (' || col_list || ')\n        VALUES (' || REPLACE(col_list, ',', ', s.') || ')\n    ';\n\n    EXECUTE IMMEDIATE merge_sql;\nEND;\n\n",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						},
+						{
+							"name": "scd2",
+							"type": "Script",
+							"dependsOn": [
+								{
+									"activity": "scd1",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "0.12:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"linkedServiceName": {
+								"referenceName": "ls_snowflake",
+								"type": "LinkedServiceReference"
+							},
+							"typeProperties": {
+								"scripts": [
+									{
+										"type": "Query",
+										"text": {
+											"value": "DECLARE \n    src_table STRING DEFAULT '@{item().table_name}_snowflake';\n    tgt_table STRING DEFAULT '@{item().table_name}_scd2';\n    pk STRING DEFAULT '@{item().primary_key}';\n\n    col_list STRING;\n    compare_list STRING;\n    insert_cols STRING;\n    insert_vals STRING;\n    expire_sql STRING;\n    insert_sql STRING;\n\nBEGIN\n    -- Business column list (from source/bronze table)\n    SELECT LISTAGG(column_name, ', ')\n    INTO :col_list\n    FROM INFORMATION_SCHEMA.COLUMNS\n    WHERE table_name = UPPER(:src_table)\n      AND column_name NOT IN ('EFFECTIVE_START_DATE','EFFECTIVE_END_DATE','IS_CURRENT');\n\n    -- Change detection condition (datatype-safe)\n    SELECT LISTAGG(\n        'NVL(TO_VARCHAR(t.' || column_name || '),'''') <> NVL(TO_VARCHAR(s.' || column_name || '),'''')',\n        ' OR '\n    )\n    INTO :compare_list\n    FROM INFORMATION_SCHEMA.COLUMNS\n    WHERE table_name = UPPER(:src_table)\n      AND column_name NOT IN ('EFFECTIVE_START_DATE','EFFECTIVE_END_DATE','IS_CURRENT', UPPER(:pk));\n\n    -- Insert columns and values\n    insert_cols := col_list || ', effective_start_date, effective_end_date, is_current';\n\n    insert_vals := REPLACE(col_list, ',', ', s.');\n    insert_vals := 's.' || insert_vals || ', CURRENT_TIMESTAMP, NULL, TRUE';\n\n    -- Step 1: Expire old records (only if changed)\n    expire_sql := '\n        UPDATE ' || tgt_table || ' t\n        SET effective_end_date = CURRENT_TIMESTAMP,\n            is_current = FALSE\n        FROM ' || src_table || ' s\n        WHERE t.' || pk || ' = s.' || pk || '\n          AND t.is_current = TRUE\n          AND (' || compare_list || ')\n    ';\n\n    -- Step 2: Insert new and changed records\n    insert_sql := '\n        INSERT INTO ' || tgt_table || ' (' || insert_cols || ')\n        SELECT ' || insert_vals || '\n        FROM ' || src_table || ' s\n        LEFT JOIN ' || tgt_table || ' t\n          ON s.' || pk || ' = t.' || pk || '\n         AND t.is_current = TRUE\n        WHERE t.' || pk || ' IS NULL\n           OR (' || compare_list || ')\n    ';\n\n    EXECUTE IMMEDIATE expire_sql;\n    EXECUTE IMMEDIATE insert_sql;\n\nEND;",
+											"type": "Expression"
+										}
+									}
+								],
+								"scriptBlockExecutionTimeout": "02:00:00",
+								"treatDecimalAsString": false
+							}
+						}
+					]
+				}
+			}
+		],
+		"variables": {
+			"v_last_watermark": {
+				"type": "String"
+			}
+		},
+		"folder": {
+			"name": "ksr_project1"
+		},
+		"annotations": []
+	}
+}
