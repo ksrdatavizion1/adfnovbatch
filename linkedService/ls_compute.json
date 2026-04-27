@@ -1,0 +1,13 @@
+{
+	"name": "ls_compute",
+	"properties": {
+		"annotations": [],
+		"type": "AzureDatabricks",
+		"typeProperties": {
+			"domain": "https://adb-7405619202755517.17.azuredatabricks.net",
+			"authentication": "MSI",
+			"workspaceResourceId": "/subscriptions/e184cb69-4aa9-4448-b6f9-47152be73cc8/resourceGroups/ksrnovbatch/providers/Microsoft.Databricks/workspaces/databircksdemo",
+			"existingClusterId": "0427-015049-dg86mahu"
+		}
+	}
+}
